@@ -32,7 +32,7 @@ make
 ./cuba index -f test.fmi ../test/test.fa
 #bidirectional FM-index of a FASTA/FASTQ file. This is nearly double the size of a monodirectional FM-index
 ./cuba index -b -f test.bifmi ../test/test.fa
-#additionally store a vector of FASTA/FASTQ sequences to file. Can be used for printing alignment
+#additionally store a vector of FASTA/FASTQ sequences to file. Can be used for printing alignments
 ./cuba index -b -f test.bifmi -v seqvec.obj ../test/test.fa
 ```
 
