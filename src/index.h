@@ -12,6 +12,7 @@
 #include <seqan3/search/fm_index/fm_index.hpp> // for using the fm_index
 #include <seqan3/search/fm_index/bi_fm_index.hpp>  // for using the bi_fm_index
 #include <cereal/archives/binary.hpp>
+#include <cereal/types/vector.hpp> 
 #include <seqan3/alphabet/all.hpp>
 
 //headers
@@ -20,6 +21,7 @@
 struct cmd_arguments_index {
 	std::vector<std::string> filein{};
 	std::string fileout {"out.fmi"};
+	std::string vecout;
 	bool bidirectional {true};
 };
 
@@ -31,8 +33,8 @@ void initialise_argument_parser_index(seqan3::argument_parser & subparser, cmd_a
 	subparser.info.description.push_back("Create a full-searchable (bidirectional) fm-index from fasta/fastq file/s");
 	subparser.add_positional_option(args.filein, "input fastq/fasta file/s, optionally gzip-compressed"); 
 	subparser.add_flag(args.bidirectional, 'b', "bidirectional", "create bidirectional fm-index (out.bifmi)",seqan3::option_spec::DEFAULT);
-	subparser.add_option(args.fileout, 'o', "out", "output (bi-)fm-index", seqan3::option_spec::DEFAULT);
-
+	subparser.add_option(args.fileout, 'f', "fmindex", "output (bidirectional) fm-index", seqan3::option_spec::DEFAULT);
+	subparser.add_option(args.vecout, 'v', "vector", "serialize vector of sequences to file");
 };
 
 
@@ -63,7 +65,9 @@ int index(seqan3::argument_parser & subparser)
 	kseq_t *seq;
 	int l;
 	std::vector<seqan3::dna5_vector> sequences = {};
-	std::string fmout;
+	std::string fmout = std::filesystem::absolute(std::filesystem::weakly_canonical(args.fileout).string()).string();
+	std::string tmpfile;
+	if (!args.vecout.empty()) tmpfile = std::filesystem::absolute(std::filesystem::weakly_canonical(args.vecout).string()).string();
 
 	for (std::vector<std::string>::const_iterator i = args.filein.begin(); i != args.filein.end(); ++i) {
 
@@ -71,14 +75,13 @@ int index(seqan3::argument_parser & subparser)
 		t[strlen(t)-1] = '\0';
 		std::cout << "[Message][" <<  t << "] Reading " << std::filesystem::canonical(*i) << std::endl;
 
-
 		fp = gzopen(std::filesystem::canonical(*i).string().c_str(), "r");
 		seq = kseq_init(fp);
 		std::string n,s,o,q;
-		std::vector<seqan3::dna5> sequence {};
 
 		while ((l = kseq_read(seq)) >= 0) {
 
+			std::vector<seqan3::dna5> sequence {};
 			n=seq->name.s;
 			s=seq->seq.s;
 			
@@ -98,13 +101,26 @@ int index(seqan3::argument_parser & subparser)
 
 	kseq_destroy(seq);
 
+	if (!tmpfile.empty()) {
+
+		t = ctime(&my_time);
+		t[strlen(t)-1] = '\0';
+		std::cout << "[Message][" <<  t << "] Storing sequences vector to file" << std::endl;
+
+		{
+		std::ofstream vecout(tmpfile, std::ios::binary);
+		cereal::BinaryOutputArchive archive(vecout);
+		archive(sequences); 
+		}
+
+	}
+
 	if (args.bidirectional) {
 
 		t = ctime(&my_time);
 		t[strlen(t)-1] = '\0';
 		std::cout << "[Message][" <<  t << "] Building bidirectional fm-index" << std::endl;
 		seqan3::bi_fm_index indexout{sequences};
-		fmout=std::filesystem::weakly_canonical(args.fileout).string();
 
 		if (fmout.substr(fmout.find_last_of(".") + 1) != "bifmi") {
 
@@ -127,7 +143,6 @@ int index(seqan3::argument_parser & subparser)
 		t[strlen(t)-1] = '\0';
 		std::cout << "[Message][" <<  t << "] Building fm index" << std::endl;
 		seqan3::fm_index indexout{sequences};
-		fmout=std::filesystem::weakly_canonical(args.fileout).string();
 
 		if (fmout.substr(fmout.find_last_of(".") + 1) != "fmi") {
 
