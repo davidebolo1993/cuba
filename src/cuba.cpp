@@ -7,6 +7,7 @@
 //headers
 #include "index.h"
 #include "find.h"
+#include "pwalign.h"
 
 
 inline void asciiArt() {
@@ -31,8 +32,8 @@ int main(int argc, char const ** argv)
 											 argc,
 											 argv,
 											 seqan3::update_notifications::off,
-											 {"index", "find"}};
- 
+											 {"index", "find", "pwalign"}};
+
 	// Top level parser
 	top_level_parser.info.description.push_back("A collection of C++ modules based on ... to handle ... data efficiently");
 	top_level_parser.info.short_description="cuba: C++ Utilities for BioinformAtics";
@@ -73,5 +74,9 @@ int main(int argc, char const ** argv)
 		std::cout << "[Message][" <<  t << "] cuba find" << std::endl;
 		return find(sub_parser);
 	}
+	else if ( sub_parser.info.app_name == std::string_view{"cuba-pwalign"}) {
+		std::cout << "[Message][" <<  t << "] cuba align" << std::endl;
+		return pwalign(sub_parser);
+	}	
 	return 0;
 }
