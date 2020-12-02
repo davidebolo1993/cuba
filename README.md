@@ -17,10 +17,8 @@ This is a work-in-progress.
 apt-get update
 apt-get install -y git build-essential g++ cmake libz-dev
 git clone --recursive https://github.com/davidebolo1993/cuba
-mkdir cuba/build
-cd cuba/build
-cmake ../src
-make
+make && make install
+cd bin
 ./cuba --help
 ```
 
